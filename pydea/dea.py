@@ -35,7 +35,7 @@ class DEA:
     
     def _make_problem(self, inputs, outputs, j0, returns):
         ##Set up pulp
-        prob = pulp.LpProblem("DMU_"+str(j0), pulp.LpMaximize)
+        prob = pulp.LpProblem("".join(["DMU_", str(j0)]), pulp.LpMaximize)
         self.inputWeights = pulp.LpVariable.dicts("inputWeight", (self._j, self._i), lowBound=0)
         self.outputWeights = pulp.LpVariable.dicts("outputWeight", (self._j, self._r), lowBound=0)
                 
@@ -48,17 +48,17 @@ class DEA:
             raise Exception(ValueError)
 
         ##Set up objective function
-        prob += sum([self.outputs[j0][r1] * self.outputWeights[j0][r1] for r1 in self._r]) - w
+        prob += pulp.LpAffineExpression([(self.outputs[j0][r1], self.outputWeights[j0][r1]) for r1 in self._r]) - w
 
         ##Set up constraints
-        prob += sum([self.inputs[j0][i1] * self.inputWeights[j0][i1] for i1 in self._i]) == 1, "Norm_constraint"
+        prob += pulp.LpAffineExpression([(self.inputs[j0][i1], self.inputWeights[j0][i1]) for i1 in self._i]) == 1, "Norm_constraint"
         for j1 in self._j:
-            prob += self._dmu_constraint(j0, j1, self._i, self._r)  - w <= 0, "DMU_constraint_" + str(j1)
+            prob += self._dmu_constraint(j0, j1, self._i, self._r)  - w <= 0, "".join(["DMU_constraint_", str(j1)])
         return prob
     
     def _dmu_constraint(self, j0, j1, i, r):
-        eOut = sum([self.outputs[j1][r1] * self.outputWeights[j0][r1] for r1 in r])
-        eIn = sum([self.inputs[j1][i1] * self.inputWeights[j0][i1] for i1 in i])
+        eOut = pulp.LpAffineExpression([(self.outputs[j1][r1], self.outputWeights[j0][r1]) for r1 in r])
+        eIn = pulp.LpAffineExpression([(self.inputs[j1][i1], self.inputWeights[j0][i1]) for i1 in i])
         return eOut - eIn     
 
     def solve(self):
