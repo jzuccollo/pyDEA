@@ -15,7 +15,7 @@ setup(name='pydea',
       license='GPL',
       packages=['pydea'],
       install_requires=[
-          'numpy', 'pulp', 'statsmodels', 'pandas'
+          'numpy', 'pulp', 'statsmodels', 'pandas', 'scikit-learn'
       ],
       test_suite='nose.collector',
       tests_require=['nose'],

@@ -27,3 +27,27 @@ def env_corr(dea_obj, env_vars):
     print mfx.summary()
     
     return corr_mod
+
+
+def deaPCA(df):
+    """
+    Extract principal components from pandas dataframe and shift distribution so that all values are strictly positive, as required for DEA.
+    """
+    
+    from sklearn.decomposition import PCA as sklearnPCA
+
+    indat_pca = sklearnPCA()
+    indat_transf = pd.DataFrame(indat_pca.fit_transform(df.values), index=df.index)
+
+    for ser, vals in indat_transf.iteritems():
+        if vals.min() <=0:
+            indat_transf[ser] = vals + np.abs(vals.min()) + 1
+   
+    fig1, ax1 = plt.subplots()
+    ax1.plot(np.array(indat_pca.explained_variance_ratio_).cumsum())
+    ax1.bar(np.arange(0.1, len(indat_pca.explained_variance_ratio_), 1), np.array(indat_pca.explained_variance_ratio_))
+    ax1.set_title('Variance explained by each principal component')
+    ax1.set_xlim(right=len(indat_pca.explained_variance_ratio_))
+    ax1.set_ylim(top=1)
+    
+    return indat_transf
