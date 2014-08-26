@@ -1,4 +1,8 @@
+# The core DEA class, setting up and solving the linear programming problems using PuLP.
+
+
 import numpy as np
+import pandas as pd
 import pulp
 
 
@@ -8,14 +12,19 @@ class DEA:
     
     Requires:
     
-        inputs: a numpy array of the inputs to the DMUs
-        outputs: a numpy array of the outputs from the DMUs
-        kind: 'VRS' or 'CRS'    
+        inputs: a pandas dataframe of the inputs to the DMUs
+        outputs: a pandas dataframe of the outputs from the DMUs
+        kind: 'VRS' or 'CRS'
     """
-    def __init__(self, inputs, outputs, kind='CRS'):
+
+    
+    def __init__(self, inputs, outputs, returns='CRS'):
+        """
+        Set up the DMUs' problems, ready to solve.
+        """
         self.inputs = inputs
         self.outputs = outputs
-        self.returns = kind
+        self.returns = returns
                
         self.J, self.I = self.inputs.shape  # no of firms, inputs
         self.R = self.outputs.shape[1]  # no of outputs
@@ -27,48 +36,70 @@ class DEA:
         
         self.dmus = self._create_problems()  # creates dictionary of pulp.LpProblem objects for the DMUs
 
+        
     def _create_problems(self):
+        """
+        Iterate over the inputs and create a dictionary of LP problems, one for each DMU.
+        """
+        
         dmu_dict = {}
         for j0 in np.arange(self.inputs.shape[0]):
-            dmu_dict[j0] = self._make_problem(self.inputs, self.outputs, j0, self.returns)
+            dmu_dict[j0] = self._make_problem(j0)
         return dmu_dict
+ 
     
-    def _make_problem(self, inputs, outputs, j0, returns):
+    def _make_problem(self, j0):
+        """
+        Create a pulp.LpProblem for a DMU.
+        """
+        
         ##Set up pulp
         prob = pulp.LpProblem("".join(["DMU_", str(j0)]), pulp.LpMaximize)
         self.inputWeights = pulp.LpVariable.dicts("inputWeight", (self._j, self._i), lowBound=0)
         self.outputWeights = pulp.LpVariable.dicts("outputWeight", (self._j, self._r), lowBound=0)
                 
         ##Set returns to scale
-        if returns == "CRS":
+        if self.returns == "CRS":
             w = 0
-        elif returns == "VRS":
+        elif self.returns == "VRS":
             w = pulp.LpVariable.dicts("w", (self._j, self._r))
         else:
             raise Exception(ValueError)
 
         ##Set up objective function
-        prob += pulp.LpAffineExpression([(self.outputWeights[j0][r1], self.outputs[j0][r1]) for r1 in self._r]) - w
+        prob += pulp.LpAffineExpression([(self.outputWeights[j0][r1], self.outputs.values[j0][r1]) for r1 in self._r]) - w
 
         ##Set up constraints
-        prob += pulp.LpAffineExpression([(self.inputWeights[j0][i1], self.inputs[j0][i1]) for i1 in self._i]) == 1, "Norm_constraint"
+        prob += pulp.LpAffineExpression([(self.inputWeights[j0][i1], self.inputs.values[j0][i1]) for i1 in self._i]) == 1, "Norm_constraint"
         for j1 in self._j:
-            prob += self._dmu_constraint(j0, j1, self._i, self._r)  - w <= 0, "".join(["DMU_constraint_", str(j1)])
+            prob += self._dmu_constraint(j0, j1)  - w <= 0, "".join(["DMU_constraint_", str(j1)])
         return prob
     
-    def _dmu_constraint(self, j0, j1, i, r):
-        eOut = pulp.LpAffineExpression([(self.outputWeights[j0][r1], self.outputs[j1][r1]) for r1 in r])
-        eIn = pulp.LpAffineExpression([(self.inputWeights[j0][i1], self.inputs[j1][i1]) for i1 in i])
+    
+    def _dmu_constraint(self, j0, j1):
+        """
+        Calculate and return the DMU constraint for a single DMU's LP problem.
+        """
+        
+        eOut = pulp.LpAffineExpression([(self.outputWeights[j0][r1], self.outputs.values[j1][r1]) for r1 in self._r])
+        eIn = pulp.LpAffineExpression([(self.inputWeights[j0][i1], self.inputs.values[j1][i1]) for i1 in self._i])
         return eOut - eIn     
 
+    
     def solve(self):
-        self.status = {}
-        self.weights = {}
-        self.efficiency = {}
+        """
+        Iterate over the dictionary of DMUs' problems, solve them, and collate the results into a pandas dataframe.
+        """
+        
+        sol_status = {}
+        sol_results = {}
+        sol_weights = {}
+        sol_efficiency = {}
         for ind, problem in self.dmus.iteritems():
             problem.solve()
-            self.status[ind] = pulp.LpStatus[problem.status]
-            self.weights[ind] = {}
+            sol_status[ind] = pulp.LpStatus[problem.status]
+            sol_weights[ind] = {}
             for v in problem.variables():
-                self.weights[ind][v.name] = v.varValue
-            self.efficiency[ind] = pulp.value(problem.objective)
+                sol_weights[ind][v.name] = v.varValue
+            sol_efficiency[ind] = pulp.value(problem.objective)
+        self.results = pd.DataFrame.from_dict({'Status': sol_status, 'Efficiency': sol_efficiency, 'Weights': sol_weights})

@@ -6,7 +6,9 @@ Create and solve simple data envelopment analysis problems.
 
 ###Requires
 
-`pyDEA` uses [`PuLP`](http://www.coin-or.org/PuLP/index.html) to solve DEA problems. Install `PuLP` from `PyPI` before proceeding.
+ - `pyDEA` uses [`PuLP`](http://www.coin-or.org/PuLP/index.html) to solve DEA problems. Install `PuLP` from `PyPI` before proceeding.
+ - `pandas`. `pyDEA` uses pandas' dataframes internally to ease integration with data munging in pandas.
+ - `statsmodels`. This is used in the `tools` module for regression analyses.
 
 ###Basic
 

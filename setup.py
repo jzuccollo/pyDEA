@@ -7,15 +7,15 @@ def readme():
 
 setup(name='pydea',
       version='0.1.0',
-      description='Class for simple data envelopment analysis.',
+      description='Library for simple data envelopment analysis.',
       long_description=open('README.md').read(),
       url='http://github.com/jzuccollo/pydea',
       author='jzuccollo',
       author_email='james.zuccollo@reform.co.uk',
-      license='MIT',
+      license='GPL',
       packages=['pydea'],
       install_requires=[
-          'numpy', 'pulp'
+          'numpy', 'pulp', 'statsmodels', 'pandas'
       ],
       test_suite='nose.collector',
       tests_require=['nose'],
