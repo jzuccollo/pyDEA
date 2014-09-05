@@ -1,6 +1,7 @@
 
 import nose
 import numpy as np
+import pandas as pd
 from pydea.dea import DEA
 from numpy.testing import assert_array_equal
 
@@ -9,8 +10,8 @@ class TestDEA():
     @classmethod
     def setup_class(cls):
         """This method is run once for each class before any tests are run"""
-        cls.inputs = np.array([[100, 70], [120, 123], [50, 20], [67, 17], [98, 20], [76, 12]])
-        cls.outputs = np.array([[1540, 154, 59], [1408, 186, 23 ], [690, 59, 76], [674, 73, 90], [1686, 197, 12], [982, 63, 15]])
+        cls.inputs = pd.DataFrame([[100, 70], [120, 123], [50, 20], [67, 17], [98, 20], [76, 12]])
+        cls.outputs = pd.DataFrame([[1540, 154, 59], [1408, 186, 23 ], [690, 59, 76], [674, 73, 90], [1686, 197, 12], [982, 63, 15]])
         
     def setUp(self):
         """This method is run once before _each_ test method is executed"""
@@ -32,4 +33,4 @@ class TestDEA():
     @nose.tools.raises(AssertionError)
     def test_init_asserts(self):
         """Test asserts of init"""
-        myprob = DEA(np.array([[100]]), np.array([[1], [2]]))
+        myprob = DEA(pd.DataFrame([[100]]), pd.DataFrame([[1], [2]]))

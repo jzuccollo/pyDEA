@@ -15,35 +15,52 @@ class DEA:
         inputs: a pandas dataframe of the inputs to the DMUs
         outputs: a pandas dataframe of the outputs from the DMUs
         kind: 'VRS' or 'CRS'
+    
     """
 
     
     def __init__(self, inputs, outputs, returns='CRS'):
         """
         Set up the DMUs' problems, ready to solve.
+        
         """
         self.inputs = inputs
         self.outputs = outputs
         self.returns = returns
                
-        self.J, self.I = self.inputs.shape  # no of firms, inputs
-        self.R = self.outputs.shape[1]  # no of outputs
+        self.J, self.I = self._get_shapes(inputs)  # no of firms, inputs
+        _, self.R = self._get_shapes(outputs)  # no of outputs
         self._i = np.arange(self.I)  # inputs
         self._r = np.arange(self.R)  # outputs
         self._j = np.arange(self.J)  # DMUs
-        
-        assert self.inputs.shape[0] == self.outputs.shape[0]  # check the inputs and outputs have the same number of DMUs
-        
+
         self.dmus = self._create_problems()  # creates dictionary of pulp.LpProblem objects for the DMUs
 
         
+    def _get_shapes(self, indat):
+        """
+        Get the shape of the input data and return it.
+        
+        """
+        
+        if type(indat) == pd.core.series.Series:
+            y = indat.shape[0]
+            x = 1
+        elif type(indat) == pd.core.frame.DataFrame:
+            y, x = indat.shape
+        else: raise TypeError("Input data is not a valid pandas DataFrame or Series.")
+        
+        return y, x
+        
+    
     def _create_problems(self):
         """
         Iterate over the inputs and create a dictionary of LP problems, one for each DMU.
+        
         """
         
         dmu_dict = {}
-        for j0 in np.arange(self.inputs.shape[0]):
+        for j0 in self._j:
             dmu_dict[j0] = self._make_problem(j0)
         return dmu_dict
  
@@ -51,6 +68,7 @@ class DEA:
     def _make_problem(self, j0):
         """
         Create a pulp.LpProblem for a DMU.
+        
         """
         
         ##Set up pulp
@@ -79,6 +97,7 @@ class DEA:
     def _dmu_constraint(self, j0, j1):
         """
         Calculate and return the DMU constraint for a single DMU's LP problem.
+        
         """
         
         eOut = pulp.LpAffineExpression([(self.outputWeights[j0][r1], self.outputs.values[j1][r1]) for r1 in self._r])
@@ -89,6 +108,7 @@ class DEA:
     def solve(self):
         """
         Iterate over the dictionary of DMUs' problems, solve them, and collate the results into a pandas dataframe.
+        
         """
         
         sol_status = {}
