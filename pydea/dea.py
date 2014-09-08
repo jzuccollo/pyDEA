@@ -15,11 +15,13 @@ class DEA:
         inputs: a pandas dataframe of the inputs to the DMUs
         outputs: a pandas dataframe of the outputs from the DMUs
         kind: 'VRS' or 'CRS'
+        in_weights: the lower-bound weight restriction to apply to all inputs to all DMUs (default is 0)
+        out_weights: the lower-bound weight restriction to apply to all outputs to all DMUs (default is 0)
     
     """
 
     
-    def __init__(self, inputs, outputs, returns='CRS'):
+    def __init__(self, inputs, outputs, returns='CRS', in_weights=0, out_weights=0):
         """
         Set up the DMUs' problems, ready to solve.
         
@@ -33,6 +35,9 @@ class DEA:
         self._i = np.arange(self.I)  # inputs
         self._r = np.arange(self.R)  # outputs
         self._j = np.arange(self.J)  # DMUs
+        
+        self._in_weights = in_weights
+        self._out_weights = out_weights
 
         self.dmus = self._create_problems()  # creates dictionary of pulp.LpProblem objects for the DMUs
 
@@ -73,8 +78,8 @@ class DEA:
         
         ##Set up pulp
         prob = pulp.LpProblem("".join(["DMU_", str(j0)]), pulp.LpMaximize)
-        self.inputWeights = pulp.LpVariable.dicts("inputWeight", (self._j, self._i), lowBound=0)
-        self.outputWeights = pulp.LpVariable.dicts("outputWeight", (self._j, self._r), lowBound=0)
+        self.inputWeights = pulp.LpVariable.dicts("inputWeight", (self._j, self._i), lowBound=self._in_weights)
+        self.outputWeights = pulp.LpVariable.dicts("outputWeight", (self._j, self._r), lowBound=self._out_weights)
                 
         ##Set returns to scale
         if self.returns == "CRS":
@@ -123,3 +128,4 @@ class DEA:
                 sol_weights[ind][v.name] = v.varValue
             sol_efficiency[ind] = pulp.value(problem.objective)
         self.results = pd.DataFrame.from_dict({'Status': sol_status, 'Efficiency': sol_efficiency, 'Weights': sol_weights})
+        self.results.index = self.inputs.index
