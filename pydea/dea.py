@@ -26,12 +26,12 @@ class DEA:
         Set up the DMUs' problems, ready to solve.
         
         """
-        self.inputs = inputs
-        self.outputs = outputs
+        self.inputs = self._to_dataframe(inputs)
+        self.outputs = self._to_dataframe(outputs)
         self.returns = returns
                
-        self.J, self.I = self._get_shapes(inputs)  # no of firms, inputs
-        _, self.R = self._get_shapes(outputs)  # no of outputs
+        self.J, self.I = self.inputs.shape  # no of firms, inputs
+        _, self.R = self.outputs.shape  # no of outputs
         self._i = np.arange(self.I)  # inputs
         self._r = np.arange(self.R)  # outputs
         self._j = np.arange(self.J)  # DMUs
@@ -41,21 +41,19 @@ class DEA:
 
         self.dmus = self._create_problems()  # creates dictionary of pulp.LpProblem objects for the DMUs
 
-        
-    def _get_shapes(self, indat):
+    
+    def _to_dataframe(self, indata):
         """
-        Get the shape of the input data and return it.
+        Indexers require input to be a dataframe but the user may pass a series. Check and cast series to dataframes.
         
         """
         
-        if type(indat) == pd.core.series.Series:
-            y = indat.shape[0]
-            x = 1
-        elif type(indat) == pd.core.frame.DataFrame:
-            y, x = indat.shape
-        else: raise TypeError("Input data is not a valid pandas DataFrame or Series.")
-        
-        return y, x
+        if type(indata) == pd.core.frame.DataFrame:
+            return indata
+        elif type(indata) == pd.core.series.Series:
+            return pd.DataFrame(indata)
+        else:
+            raise TypeError("Input data is not a valid pandas DataFrame or Series.")
         
     
     def _create_problems(self):
@@ -110,7 +108,7 @@ class DEA:
         return eOut - eIn     
 
     
-    def solve(self):
+    def _solver(self):
         """
         Iterate over the dictionary of DMUs' problems, solve them, and collate the results into a pandas dataframe.
         
@@ -127,5 +125,9 @@ class DEA:
             for v in problem.variables():
                 sol_weights[ind][v.name] = v.varValue
             sol_efficiency[ind] = pulp.value(problem.objective)
-        self.results = pd.DataFrame.from_dict({'Status': sol_status, 'Efficiency': sol_efficiency, 'Weights': sol_weights})
+        return pd.DataFrame.from_dict({'Status': sol_status, 'Efficiency': sol_efficiency, 'Weights': sol_weights})
+        
+    
+    def solve(self):
+        self.results = self._solver()
         self.results.index = self.inputs.index

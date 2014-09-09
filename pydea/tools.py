@@ -29,13 +29,29 @@ def env_corr(dea_obj, env_vars):
     return corr_mod
 
 
-def deaPCA(df):
+def normalise_df(df):
+    dfnorm = pd.DataFrame(index=df.index)
+    for ind, ser in df.iteritems():
+        dfnorm[ind] = (ser - ser.mean()) / ser.std()
+    return dfnorm
+
+
+def deaPCA(df, allres=False, normalise=False, plot=True):
     """
     Extract principal components from pandas dataframe and shift distribution so that all values are strictly positive, as required for DEA.
+    
+    Takes:
+        df: A dataframe of series to run the PCA on.
+        allres: Boolean. Set True if you would like to get the PCA object returned instead of the transformed data. This can be useful if you wish to use the entire results of the PCA.
+        normalise: Boolean. Set True to normalise the series to a z-score before transforming.
+        plot: Should the function display a plot of the variance explained?
     """
     
     from sklearn.decomposition import PCA as sklearnPCA
 
+    if normalise:
+        df = normalise_df(df)
+    
     indat_pca = sklearnPCA()
     indat_transf = pd.DataFrame(indat_pca.fit_transform(df.values), index=df.index)
 
@@ -43,11 +59,15 @@ def deaPCA(df):
         if vals.min() <=0:
             indat_transf[ser] = vals + np.abs(vals.min()) + 1
    
-    fig1, ax1 = plt.subplots()
-    ax1.plot(np.array(indat_pca.explained_variance_ratio_).cumsum())
-    ax1.bar(np.arange(0.1, len(indat_pca.explained_variance_ratio_), 1), np.array(indat_pca.explained_variance_ratio_))
-    ax1.set_title('Variance explained by each principal component')
-    ax1.set_xlim(right=len(indat_pca.explained_variance_ratio_))
-    ax1.set_ylim(top=1)
-    
-    return indat_transf
+    if plot:
+        fig1, ax1 = plt.subplots()
+        ax1.plot(np.array(indat_pca.explained_variance_ratio_).cumsum())
+        ax1.bar(np.arange(0.1, len(indat_pca.explained_variance_ratio_), 1), np.array(indat_pca.explained_variance_ratio_))
+        ax1.set_title('Variance explained by each principal component')
+        ax1.set_xlim(right=len(indat_pca.explained_variance_ratio_))
+        ax1.set_ylim(top=1)
+
+    if allres:
+        return indat_pca
+    else:
+        return indat_transf
