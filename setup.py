@@ -7,7 +7,7 @@ def readme():
 
 setup(name='pydea',
       version='0.1.0',
-      description='Library for simple data envelopment analysis.',
+      description='Pure python library for data envelopment analysis.',
       long_description=open('README.md').read(),
       url='http://github.com/jzuccollo/pydea',
       author='jzuccollo',
