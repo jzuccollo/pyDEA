@@ -11,7 +11,7 @@ class TestDEAProblem():
     def setup_class(cls):
         """This method is run once for each class before any tests are run"""
         cls.inputs = pd.DataFrame([[100, 70], [120, 123], [50, 20], [67, 17], [98, 20], [76, 12]])
-        cls.outputs = pd.DataFrame([[1540, 154, 59], [1408, 186, 23 ], [690, 59, 76], [674, 73, 90], [1686, 197, 12], [982, 63, 15]])
+        cls.outputs = pd.DataFrame([[1540, 154, 59], [1408, 186, 23], [690, 59, 76], [674, 73, 90], [1686, 197, 12], [982, 63, 15]])
 
     def setUp(self):
         """This method is run once before _each_ test method is executed"""

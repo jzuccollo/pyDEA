@@ -140,6 +140,16 @@ class DEAProblem:
             sol_efficiency[ind] = pulp.value(problem.objective)
         return sol_status, sol_efficiency, sol_weights
 
+    def _build_weight_results_dict(self, sol_weights):
+        """
+        Take the dict of weights, separate into input and output weights, then
+        build a pandas dataframe of them.
+
+        """
+
+
+        return weight_results
+
     def solve(self, sol_type='technical'):
         """"
         Solve the problem and create attributes to hold the solutions.
@@ -151,9 +161,10 @@ class DEAProblem:
 
         if sol_type == 'technical':
             sol_status, sol_efficiency, sol_weights = self._solver()
+            weight_results = self._build_weight_results_dict(sol_weights)
             return DEAResults(('Status', pd.DataFrame(sol_status, index=self.inputs.index)),
                               ('Efficiency', pd.DataFrame(sol_efficiency, index=self.inputs.index)),
-                              ('Weights', sol_weights))
+                              ('Weights', weight_results))
         else:
             print "Solution type not yet implemented."
             print "Solving for technical efficiency instead."
@@ -161,7 +172,6 @@ class DEAProblem:
 
 
 class DEAResults(dict):
-
     """
     A class to hold the results of a DEAProblem and provide methods for
     their examination. Essentially a dictionary of pandas Series with
