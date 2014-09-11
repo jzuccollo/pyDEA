@@ -7,20 +7,24 @@ import pandas as pd
 import pulp
 
 
-class DEA:
+class DEAProblem:
 
     """
-    A container for the elements of a data envelopment analysis problem. Sets up the linear programmes and solves them with pulp.
+    A container for the elements of a data envelopment analysis problem. Sets
+    up the linear programmes and solves them with pulp.
 
     Requires:
 
         inputs: a pandas dataframe of the inputs to the DMUs
         outputs: a pandas dataframe of the outputs from the DMUs
         kind: 'VRS' or 'CRS'
-        in_weights: the weight restriction to apply to all inputs to all DMUs (default is [0, inf])
-        out_weights: the weight restriction to apply to all outputs to all DMUs (default is [0, inf)
+        in_weights: the weight restriction to apply to all inputs to all DMUs
+                    (default is [0, inf])
+        out_weights: the weight restriction to apply to all outputs to all DMUs
+                     (default is [0, inf)
 
-    Weight restrictions must be specified as a list. To specify only one bound leave the other as None, eg. in_weights=[1, None].
+    Weight restrictions must be specified as a list. To specify only one bound
+    leave the other as None, eg. in_weights=[1, None].
 
     """
 
@@ -47,7 +51,8 @@ class DEA:
 
     def _to_dataframe(self, indata):
         """
-        Indexers require input to be a dataframe but the user may pass a series. Check and cast series to dataframes.
+        Indexers require input to be a dataframe but the user may pass a
+        series. Check and cast series to dataframes.
 
         """
 
@@ -61,7 +66,8 @@ class DEA:
 
     def _create_problems(self):
         """
-        Iterate over the inputs and create a dictionary of LP problems, one for each DMU.
+        Iterate over the inputs and create a dictionary of LP problems, one
+        for each DMU.
 
         """
 
@@ -96,8 +102,8 @@ class DEA:
             [(self.outputWeights[j0][r1], self.outputs.values[j0][r1]) for r1 in self._r]) - w
 
         # Set up constraints
-        prob += pulp.LpAffineExpression([(self.inputWeights[j0][i1], self.inputs.values[
-                                        j0][i1]) for i1 in self._i]) == 1, "Norm_constraint"
+        prob += pulp.LpAffineExpression([(self.inputWeights[j0][i1],
+                                          self.inputs.values[j0][i1]) for i1 in self._i]) == 1, "Norm_constraint"
         for j1 in self._j:
             prob += self._dmu_constraint(j0, j1) - \
                 w <= 0, "".join(["DMU_constraint_", str(j1)])
@@ -117,7 +123,8 @@ class DEA:
 
     def _solver(self):
         """
-        Iterate over the dictionary of DMUs' problems, solve them, and collate the results into a pandas dataframe.
+        Iterate over the dictionary of DMUs' problems, solve them, and collate
+        the results into a pandas dataframe.
 
         """
 
@@ -131,13 +138,76 @@ class DEA:
             for v in problem.variables():
                 sol_weights[ind][v.name] = v.varValue
             sol_efficiency[ind] = pulp.value(problem.objective)
-        return pd.DataFrame.from_dict({'Status': sol_status, 'Efficiency': sol_efficiency, 'Weights': sol_weights})
+        return sol_status, sol_efficiency, sol_weights
 
-    def solve(self):
+    def solve(self, sol_type='technical'):
         """"
         Solve the problem and create attributes to hold the solutions.
 
+        Takes:
+            sol_type: 'technical'/'allocative'/'economic'
+
         """
 
-        self.results = self._solver()
-        self.results.index = self.inputs.index
+        if sol_type == 'technical':
+            sol_status, sol_efficiency, sol_weights = self._solver()
+            return DEAResults(('Status', pd.DataFrame(sol_status, index=self.inputs.index)),
+                              ('Efficiency', pd.DataFrame(sol_efficiency, index=self.inputs.index)),
+                              ('Weights', sol_weights))
+        else:
+            print "Solution type not yet implemented."
+            print "Solving for technical efficiency instead."
+            self.solve()
+
+
+class DEAResults(dict):
+
+    """
+    A class to hold the results of a DEAProblem and provide methods for
+    their examination. Essentially a dictionary of pandas Series with
+    methods for conducting particular operations on DEA results.
+
+    """
+
+    def __init__(self, arg):
+        super(DEAResults, self).__init__()
+        self.arg = arg
+
+    def find_comparators(self, dmu):
+        """
+        Return the DMUs that form the frontier for the specified DMU.
+
+        """
+        pass
+
+    def env_corr(self, env_vars):
+        """
+        Determine correlations with environmental/non-discretionary variables
+        using a logit regression. Tobit will be implemented when available
+        upstream in statsmodels.
+
+        Takes:
+            env_vars: A pandas dataframe of environmental variables
+
+        Returns:
+            corr_mod: the statsmodels' model instance containing the inputs
+                      and results from the logit model.
+
+        Note that there can be no spaces in the variables' names.
+        """
+
+        print ('A logit regression will be used. A censored regression with'
+               'a Tobit model would be more correct but it is not yet provided'
+               'by statsmodels.\n')
+
+        from statsmodels.formula.api import logit
+
+        corr_data = env_vars.join(self['Efficiency'])
+        corr_mod = logit(
+            "Efficiency ~ " + " + ".join(env_vars.columns), corr_data).fit()
+
+        mfx = corr_mod.get_margeff()
+        print mfx.summary()
+
+        return corr_mod
+

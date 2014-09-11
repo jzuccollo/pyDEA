@@ -1,2 +1,2 @@
-from dea import DEA
+from dea import *
 import tools
