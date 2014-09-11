@@ -33,8 +33,8 @@ class DEAProblem:
         Set up the DMUs' problems, ready to solve.
 
         """
-        self.inputs = self._to_dataframe(inputs)
-        self.outputs = self._to_dataframe(outputs)
+        self.inputs = _to_dataframe(inputs)
+        self.outputs = _to_dataframe(outputs)
         self.returns = returns
 
         self.J, self.I = self.inputs.shape  # no of firms, inputs
@@ -48,21 +48,6 @@ class DEAProblem:
 
         # creates dictionary of pulp.LpProblem objects for the DMUs
         self.dmus = self._create_problems()
-
-    def _to_dataframe(self, indata):
-        """
-        Indexers require input to be a dataframe but the user may pass a
-        series. Check and cast series to dataframes.
-
-        """
-
-        if type(indata) == pd.core.frame.DataFrame:
-            return indata
-        elif type(indata) == pd.core.series.Series:
-            return pd.DataFrame(indata)
-        else:
-            raise TypeError(
-                "Input data is not a valid pandas DataFrame or Series.")
 
     def _create_problems(self):
         """
@@ -142,11 +127,21 @@ class DEAProblem:
 
     def _build_weight_results_dict(self, sol_weights):
         """
-        Take the dict of weights, separate into input and output weights, then
-        build a pandas dataframe of them.
+        Rename weights from input and output column names, then build a
+        pandas dataframe of all weights.
 
         """
-
+        tmp_dict = {}
+        for dmu, d in sol_weights.iteritems():
+            tmp_dict[dmu] = {}
+            for key, _ in d.iteritems():
+                if key.startswith("input"):
+                    i = int(key[-1])
+                    tmp_dict[dmu]["in_" + str(self.inputs.columns[i])] = d[key]
+                if key.startswith("output"):
+                    i = int(key[-1])
+                    tmp_dict[dmu]["out_" + str(self.outputs.columns[i])] = d[key]
+        weight_results = pd.DataFrame.from_dict(tmp_dict).T
 
         return weight_results
 
@@ -162,9 +157,10 @@ class DEAProblem:
         if sol_type == 'technical':
             sol_status, sol_efficiency, sol_weights = self._solver()
             weight_results = self._build_weight_results_dict(sol_weights)
-            return DEAResults(('Status', pd.DataFrame(sol_status, index=self.inputs.index)),
-                              ('Efficiency', pd.DataFrame(sol_efficiency, index=self.inputs.index)),
-                              ('Weights', weight_results))
+
+            return DEAResults((('Status', pd.Series(sol_status, index=self.inputs.index)),
+                              ('Efficiency', pd.Series(sol_efficiency, index=self.inputs.index)),
+                              ('Weights', weight_results)))
         else:
             print "Solution type not yet implemented."
             print "Solving for technical efficiency instead."
@@ -179,9 +175,9 @@ class DEAResults(dict):
 
     """
 
-    def __init__(self, arg):
-        super(DEAResults, self).__init__()
-        self.arg = arg
+#    def __init__(self):
+#        super(DEAResults, self).__init__()
+#        pass
 
     def find_comparators(self, dmu):
         """
@@ -212,7 +208,8 @@ class DEAResults(dict):
 
         from statsmodels.formula.api import logit
 
-        corr_data = env_vars.join(self['Efficiency'])
+        env_data = _to_dataframe(env_vars)
+        corr_data = env_data.join(self['Efficiency'])
         corr_mod = logit(
             "Efficiency ~ " + " + ".join(env_vars.columns), corr_data).fit()
 
@@ -221,3 +218,19 @@ class DEAResults(dict):
 
         return corr_mod
 
+
+
+def _to_dataframe(indata):
+    """
+    Indexers require input to be a dataframe but the user may pass a
+    series. Check and cast series to dataframes.
+
+    """
+
+    if type(indata) == pd.core.frame.DataFrame:
+        return indata
+    elif type(indata) == pd.core.series.Series:
+        return pd.DataFrame(indata, columns=['input_data'])
+    else:
+        raise TypeError(
+            "Input data is not a valid pandas DataFrame or Series.")
