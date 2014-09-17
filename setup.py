@@ -1,14 +1,16 @@
 from setuptools import setup
 
-
-def readme():
-    with open('README.md') as f:
-        return f.read()
+try:
+    from pypandoc import convert
+    read_md = lambda f: convert(f, 'rst')
+except ImportError:
+    print("Warning: pypandoc module not found, could not convert Markdown to RST")
+    read_md = lambda f: open(f, 'r').read()
 
 setup(name='pydea',
       version='0.2.0',
       description='Pure python library for data envelopment analysis.',
-      long_description=open('README.md').read(),
+      long_description=read_md('README.md'),
       url='http://github.com/jzuccollo/pydea',
       author='jzuccollo',
       author_email='james.zuccollo@reform.co.uk',

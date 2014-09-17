@@ -4,6 +4,8 @@ Create and solve simple data envelopment analysis problems.
 
 ##Installation
 
+This package is written for Python 3.x and does not support Python 2.x.
+
 ###Requires
 
  - `pyDEA` uses [`PuLP`](http://www.coin-or.org/PuLP/index.html) to solve DEA problems. Install `PuLP` from `PyPI` before proceeding.
@@ -13,7 +15,7 @@ Create and solve simple data envelopment analysis problems.
 
 ###Basic
 
-Download and unpack the files from Github, then run `python setup.py install` in the root directory.
+Download and unpack the files from GitHub, then run `python setup.py install` in the root directory.
 
 ###Pip
 

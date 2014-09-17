@@ -1,2 +1,2 @@
-from dea import *
-import tools
+from .dea import DEAProblem, DEAResults
+from . import tools

@@ -1,8 +1,6 @@
 # The core DEA class, setting up and solving the linear programming
 # problems using PuLP.
 
-
-import numpy as np
 import pandas as pd
 import pulp
 
@@ -28,7 +26,8 @@ class DEAProblem:
 
     """
 
-    def __init__(self, inputs, outputs, returns='CRS', in_weights=[0, None], out_weights=[0, None]):
+    def __init__(self, inputs, outputs, returns='CRS',
+                 in_weights=[0, None], out_weights=[0, None]):
         """
         Set up the DMUs' problems, ready to solve.
 
@@ -39,12 +38,12 @@ class DEAProblem:
 
         self.J, self.I = self.inputs.shape  # no of firms, inputs
         _, self.R = self.outputs.shape  # no of outputs
-        self._i = np.arange(self.I)  # inputs
-        self._r = np.arange(self.R)  # outputs
-        self._j = np.arange(self.J)  # DMUs
+        self._i = range(self.I)  # inputs
+        self._r = range(self.R)  # outputs
+        self._j = range(self.J)  # DMUs
 
-        self._in_weights = in_weights
-        self._out_weights = out_weights
+        self._in_weights = in_weights  # input weight restrictions
+        self._out_weights = out_weights  # output weight restrictions
 
         # creates dictionary of pulp.LpProblem objects for the DMUs
         self.dmus = self._create_problems()
@@ -116,7 +115,8 @@ class DEAProblem:
         sol_status = {}
         sol_weights = {}
         sol_efficiency = {}
-        for ind, problem in self.dmus.iteritems():
+
+        for ind, problem in list(self.dmus.items()):
             problem.solve()
             sol_status[ind] = pulp.LpStatus[problem.status]
             sol_weights[ind] = {}
@@ -132,15 +132,16 @@ class DEAProblem:
 
         """
         tmp_dict = {}
-        for dmu, d in sol_weights.iteritems():
+        for dmu, d in list(sol_weights.items()):
             tmp_dict[dmu] = {}
-            for key, _ in d.iteritems():
+            for key, _ in list(d.items()):
                 if key.startswith("input"):
                     i = int(key[-1])
                     tmp_dict[dmu]["in_" + str(self.inputs.columns[i])] = d[key]
                 if key.startswith("output"):
                     i = int(key[-1])
-                    tmp_dict[dmu]["out_" + str(self.outputs.columns[i])] = d[key]
+                    tmp_dict[dmu][
+                        "out_" + str(self.outputs.columns[i])] = d[key]
         weight_results = pd.DataFrame.from_dict(tmp_dict).T
 
         return weight_results
@@ -151,23 +152,29 @@ class DEAProblem:
 
         Takes:
             sol_type: 'technical'/'allocative'/'economic'
+            dmus: tuple defining range of DMUs to solve for.
 
         """
 
         if sol_type == 'technical':
             sol_status, sol_efficiency, sol_weights = self._solver()
             weight_results = self._build_weight_results_dict(sol_weights)
+            status_df = pd.Series(sol_status, name='Status')
+            status_df.index = self.inputs.index
+            efficiency_df = pd.Series(sol_efficiency, name='Efficiency')
+            efficiency_df.index = self.inputs.index
 
-            return DEAResults((('Status', pd.Series(sol_status, index=self.inputs.index)),
-                              ('Efficiency', pd.Series(sol_efficiency, index=self.inputs.index)),
-                              ('Weights', weight_results)))
+            return DEAResults((('Status', status_df),
+                               ('Efficiency', efficiency_df),
+                               ('Weights', weight_results)))
         else:
-            print "Solution type not yet implemented."
-            print "Solving for technical efficiency instead."
+            print("Solution type not yet implemented.")
+            print("Solving for technical efficiency instead.")
             self.solve()
 
 
 class DEAResults(dict):
+
     """
     A class to hold the results of a DEAProblem and provide methods for
     their examination. Essentially a dictionary of pandas Series with
@@ -202,9 +209,9 @@ class DEAResults(dict):
         Note that there can be no spaces in the variables' names.
         """
 
-        print ('A logit regression will be used. A censored regression with'
-               'a Tobit model would be more correct but it is not yet provided'
-               'by statsmodels.\n')
+        print('A logit regression will be used. A censored regression with '
+              'a Tobit model would be more correct but it is not yet provided '
+              'by statsmodels.\n')
 
         from statsmodels.formula.api import logit
 
@@ -214,10 +221,9 @@ class DEAResults(dict):
             "Efficiency ~ " + " + ".join(env_vars.columns), corr_data).fit()
 
         mfx = corr_mod.get_margeff()
-        print mfx.summary()
+        print(mfx.summary())
 
         return corr_mod
-
 
 
 def _to_dataframe(indata):

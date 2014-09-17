@@ -12,7 +12,7 @@ def normalise_df(df):
     """
 
     dfnorm = pd.DataFrame(index=df.index)
-    for ind, ser in df.iteritems():
+    for ind, ser in list(df.items()):
         dfnorm[ind] = (ser - ser.mean()) / ser.std()
     return dfnorm
 
@@ -37,7 +37,7 @@ def deaPCA(df, allres=False, normalise=False, plot=True):
     indat_transf = pd.DataFrame(
         indat_pca.fit_transform(df.values), index=df.index)
 
-    for ser, vals in indat_transf.iteritems():
+    for ser, vals in list(indat_transf.items()):
         if vals.min() <= 0:
             indat_transf[ser] = vals + np.abs(vals.min()) + 1
 
