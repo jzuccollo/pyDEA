@@ -46,4 +46,4 @@ def size_plot(df, figsize=(15, 6)):
     axs.set_title("Distribution by column")
     sns.despine(offset=10, ax=axs)
     plt.xticks(rotation=45, ha='right')
-    return fig, ax
+    return fig, axs

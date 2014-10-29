@@ -193,7 +193,7 @@ class DEAResults(dict):
         """
         pass
 
-    def env_corr(self, env_vars):
+    def env_corr(self, env_vars, coeff_plot=False, qq_plot=False):
         """
         Determine correlations with environmental/non-discretionary variables
         using a logit regression. Tobit will be implemented when available
@@ -209,21 +209,32 @@ class DEAResults(dict):
         Note that there can be no spaces in the variables' names.
         """
 
-        print('A logit regression will be used. A censored regression with '
-              'a Tobit model would be more correct but it is not yet provided '
-              'by statsmodels.\n')
-
-        from statsmodels.formula.api import logit
+        import matplotlib.pyplot as plt
+        from statsmodels.regression.linear_model import OLS
+        from statsmodels.graphics.gofplots import qqplot
+        from seaborn import coefplot
 
         env_data = _to_dataframe(env_vars)
         corr_data = env_data.join(self['Efficiency'])
-        corr_mod = logit(
-            "Efficiency ~ " + " + ".join(env_vars.columns), corr_data).fit()
+        corr_mod = OLS.from_formula(
+            "Efficiency ~ " + " + ".join(env_vars.columns), corr_data)
+        corr_res = corr_mod.fit()
 
-        mfx = corr_mod.get_margeff()
-        print(mfx.summary())
+        #plot coeffs
+        if coeff_plot:
+            coefplot("Efficiency ~ " + " + ".join(env_vars.columns),
+                     data=corr_data)
+            plt.xticks(rotation=45, ha='right')
+            plt.title('Regression coefficients and standard errors')
 
-        return corr_mod
+        #plot qq of residuals
+        if qq_plot:
+            qqplot(corr_res.resid, line='s')
+            plt.title('Distribution of residuals')
+
+        print(corr_res.summary())
+
+        return corr_res
 
 
 def _to_dataframe(indata):
