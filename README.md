@@ -1,5 +1,7 @@
 # pyDEA
 
+**Not longer actively maintained. [pyDEA](https://github.com/araith/pyDEA) has since been developed. If I were to come back to this, it would make more sense to reimplement it as a pandas-friendly interface for that project.**
+
 Create and solve simple data envelopment analysis problems.
 
 ## Installation
