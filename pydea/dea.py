@@ -194,7 +194,7 @@ class DEAResults(dict):
         """
         pass
 
-    def env_corr(self, env_vars, coeff_plot=False, qq_plot=False):
+    def env_corr(self, env_vars, qq_plot=False):
         """
         Determine correlations with environmental/non-discretionary variables
         using a logit regression. Tobit will be implemented when available
@@ -213,20 +213,12 @@ class DEAResults(dict):
         import matplotlib.pyplot as plt
         from statsmodels.regression.linear_model import OLS
         from statsmodels.graphics.gofplots import qqplot
-        from seaborn import coefplot
 
         env_data = _to_dataframe(env_vars)
         corr_data = env_data.join(self['Efficiency'])
         corr_mod = OLS.from_formula(
             "Efficiency ~ " + " + ".join(env_vars.columns), corr_data)
         corr_res = corr_mod.fit()
-
-        #plot coeffs
-        if coeff_plot:
-            coefplot("Efficiency ~ " + " + ".join(env_vars.columns),
-                     data=corr_data)
-            plt.xticks(rotation=45, ha='right')
-            plt.title('Regression coefficients and standard errors')
 
         #plot qq of residuals
         if qq_plot:
