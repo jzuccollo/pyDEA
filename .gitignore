@@ -199,6 +199,7 @@ parts/
 var/
 sdist/
 develop-eggs/
+_build/
 .installed.cfg
 
 # Installer logs
@@ -221,3 +222,6 @@ pip-log.txt
 pydea/deastats
 pydea/deastats2
 *.pickle
+
+.eggs/
+.vscode/
