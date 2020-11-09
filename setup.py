@@ -13,12 +13,12 @@ setup(name='pydea',
       long_description=read_md('README.md'),
       url='http://github.com/jzuccollo/pydea',
       author='jzuccollo',
-      author_email='james.zuccollo@reform.co.uk',
+      author_email='james.zuccollo@epi.org.uk',
       license='GPL',
       packages=['pydea'],
       install_requires=[
           'numpy', 'pulp', 'statsmodels', 'pandas', 'scikit-learn'
       ],
-      test_suite='nose.collector',
-      tests_require=['nose'],
-      zip_safe=False,)
+      setup_requires=['pytest-runner'],
+      tests_require=['pytest'],
+      zip_safe=False)
